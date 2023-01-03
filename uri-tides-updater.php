@@ -20,33 +20,33 @@ if ( !defined('ABSPATH') )
  * WP CRON SETTINGS
  * Set up a cron interval to run every 10 minutes
  */
-function uri_tides_add_cron_interval( $schedules ) {
+function uri_tides_updater_add_cron_interval( $schedules ) {
 	$schedules['ten_minutes'] = array(
 		'interval' => 60 * 10,
 		'display' => esc_html__( 'Every Ten Minutes' ),
 	);
 	return $schedules;
 }
-add_filter( 'cron_schedules', 'uri_tides_add_cron_interval' );
+add_filter( 'cron_schedules', 'uri_tides_updater_add_cron_interval' );
 
 // set us up the cron hook
 // https://developer.wordpress.org/plugins/cron/scheduling-wp-cron-events/
-add_action( 'uri_tides_cron_hook', 'uri_tides_query_buoy' );
+add_action( 'uri_tides_updater_cron_hook', 'uri_tides_updater_query_buoy' );
 
 // finally, make sure that get tides is going run during the next 10 minute cron run
-if ( ! wp_next_scheduled( 'uri_tides_cron_hook' ) ) {
-	wp_schedule_event( time(), 'ten_minutes', 'uri_tides_cron_hook' );
+if ( ! wp_next_scheduled( 'uri_tides_updater_cron_hook' ) ) {
+	wp_schedule_event( time(), 'ten_minutes', 'uri_tides_updater_cron_hook' );
 }
 
  
 /**
  * Deactivate the cron setting if the plugin is shut off
  */
-function uri_tides_deactivate() {
-	$timestamp = wp_next_scheduled( 'uri_tides_cron_hook' );
-	wp_unschedule_event( $timestamp, 'uri_tides_cron_hook' );
+function uri_tides_updater_deactivate() {
+	$timestamp = wp_next_scheduled( 'uri_tides_updater_cron_hook' );
+	wp_unschedule_event( $timestamp, 'uri_tides_updater_cron_hook' );
 }
-register_deactivation_hook( __FILE__, 'uri_tides_deactivate' );
+register_deactivation_hook( __FILE__, 'uri_tides_updater_deactivate' );
 
 
 /**
@@ -57,24 +57,24 @@ register_deactivation_hook( __FILE__, 'uri_tides_deactivate' );
  *
  * This is likely redundant due to the cron activity, but the code's here, and it 
  * won't run if there's a recent cache
- * @see uri_tides_add_cron_interval()
+ * @see uri_tides_updater_add_cron_interval()
  * 
  * Why not a transient?  Because I'm a control freak 
  * who would rather have stale data than no data
  */
-function uri_tides_get_data() {
+function uri_tides_updater_get_data() {
 
 	$refresh_cache = FALSE;
 	
 	// 1. load all cached tide data
-	$tides_data = _uri_tides_load_cache();
+	$tides_data = _uri_tides_updater_load_cache();
 
 	// 2. check if we have a cache for this resource
 	if ( $tides_data !== FALSE ) {
 		// we've got cached data
 		// 3. check if the cache has sufficient recency
 		$expires_on = isset($tides_data['expires_on']) ? $tides_data['expires_on'] : $tides_data['date'];
-		if ( uri_tides_is_expired( $expires_on ) ) {
+		if ( uri_tides_updater_is_expired( $expires_on ) ) {
 			// cache is older than the specified recency, refresh it
 			// 4. refresh tides / update cache if needed
 			$refresh_cache = TRUE;
@@ -87,25 +87,25 @@ function uri_tides_get_data() {
 	if( $refresh_cache ) {
 		//echo '<pre>Pull fresh tides and cache them</pre>';
 		
-		$tides_data = uri_tides_query_buoy();
+		$tides_data = uri_tides_updater_query_buoy();
 		
 		if($tides_data !== FALSE) {
-			uri_tides_write_cache($tides_data);
+			uri_tides_updater_write_cache($tides_data);
 		} else {
 			// the cache is expired, but the fresh buoy response is invalid.
 			// extend the cache's lifespan for an hour
 			$expires_on = strtotime( '+1 hour', strtotime('now') );
-			$tides_data = _uri_tides_load_cache();
-			uri_tides_write_cache($tides_data, $expires_on);
+			$tides_data = _uri_tides_updater_load_cache();
+			uri_tides_updater_write_cache($tides_data, $expires_on);
 			
 			// notify the administrator of a problem
-			// _uri_tides_notify_administrator( $tides_data );
+			// _uri_tides_updater_notify_administrator( $tides_data );
 			
 		}
 		
 	}
 	// reload the tides data from the database to capitalize on cache updates
-	$tides_data = _uri_tides_load_cache();
+	$tides_data = _uri_tides_updater_load_cache();
 
 	return $tides_data;
 }
@@ -115,7 +115,7 @@ function uri_tides_get_data() {
  * @param $tides_data arr the tides data 
  * @return bool
  */
-function _uri_tides_notify_administrator( $tides_data ) {
+function _uri_tides_updater_notify_administrator( $tides_data ) {
 	// @todo: identify which site is sending the error
 	$to = get_option('admin_email');
 	if( empty ( $to ) ) {
@@ -136,8 +136,8 @@ function _uri_tides_notify_administrator( $tides_data ) {
 /**
  * Retrieve the tides data from the database
  */
-function _uri_tides_load_cache() {
-	$tides_data = get_site_option( 'uri_tides_cache', FALSE);
+function _uri_tides_updater_load_cache() {
+	$tides_data = get_site_option( 'uri_tides_updater_cache', FALSE);
 	if ( empty( $tides_data ) ) {
 		$tides_data = array();
 		$tides_data['date'] = strtotime('now -10 seconds');
@@ -150,11 +150,11 @@ function _uri_tides_load_cache() {
  * Query the NOAA buoy
  * @return mixed; arr on success, bool false on failure
  */
-function uri_tides_query_buoy() {
+function uri_tides_updater_query_buoy() {
 	$station = '8454049';
 	$tides_data = array();
-	$tides_data['temperature'] = _uri_tides_query( _uri_tides_build_url ( 'temperature', $station ) );
-	$tides_data['tide'] = _uri_tides_query( _uri_tides_build_url ( 'tide', $station ) );
+	$tides_data['temperature'] = _uri_tides_updater_query( _uri_tides_updater_build_url ( 'temperature', $station ) );
+	$tides_data['tide'] = _uri_tides_updater_query( _uri_tides_updater_build_url ( 'tide', $station ) );
 	
 	if ( $tides_data['temperature'] !== FALSE && $tides_data['tide'] !== FALSE ) {
 		return $tides_data;
@@ -169,7 +169,7 @@ function uri_tides_query_buoy() {
  * @param str $subject is the three letter subject code
  * @return str
  */
-function _uri_tides_build_url( $q='temperature', $station='8454049' ) {
+function _uri_tides_updater_build_url( $q='temperature', $station='8454049' ) {
 	$base = 'https://tidesandcurrents.noaa.gov/api/datagetter?';
 	$application = 'NOS.COOPS.TAC.' . ($q == 'temperature') ? 'PHYSOCEAN' : 'WL';
 	
@@ -197,17 +197,17 @@ function _uri_tides_build_url( $q='temperature', $station='8454049' ) {
  * @param str $expires_on expects a date object for some time in the future, if empty, 
  *   it'll use the value set in the admin preferences (or the default five minutes)
  */
-function uri_tides_write_cache( $tides_data, $expires_on='' ) {
+function uri_tides_updater_write_cache( $tides_data, $expires_on='' ) {
 
 	// if expires on is empty or not in the future, set a new expiry date
 	if ( empty ( $expires_on ) || !($expires_on > strtotime('now')) ) {
-		$recency = get_site_option( 'uri_tides_recency', '5 minutes' );
+		$recency = get_site_option( 'uri_tides_updater_recency', '5 minutes' );
 		$expires_on = strtotime( '+'.$recency, strtotime('now') );
 	}
 
 	$tides_data['date'] = strtotime('now');
 	$tides_data['expires_on'] = $expires_on;
-	update_site_option( 'uri_tides_cache', $tides_data, TRUE );
+	update_site_option( 'uri_tides_updater_cache', $tides_data, TRUE );
 }
 
 
@@ -216,7 +216,7 @@ function uri_tides_write_cache( $tides_data, $expires_on='' ) {
  * @param int date
  * @return bool
  */
-function uri_tides_is_expired( $date ) {
+function uri_tides_updater_is_expired( $date ) {
 	return ( $date < strtotime('now') );
 }
 
@@ -226,7 +226,7 @@ function uri_tides_is_expired( $date ) {
  * Query the buoy for tide level
  * @return mixed arr on success; FALSE on failure
  */
-function _uri_tides_query( $url ) {
+function _uri_tides_updater_query( $url ) {
 
 	$args = array(
 		'user-agent' => 'URI Tides WordPress Plugin', // So the endpoint can figure out who we are
