@@ -31,7 +31,7 @@ add_filter( 'cron_schedules', 'uri_tides_updater_add_cron_interval' );
 
 // set us up the cron hook
 // https://developer.wordpress.org/plugins/cron/scheduling-wp-cron-events/
-add_action( 'uri_tides_updater_cron_hook', 'uri_tides_updater_query_buoy' );
+add_action( 'uri_tides_updater_cron_hook', 'uri_tides_updater_get_data' );
 
 // finally, make sure that get tides is going run during the next 10 minute cron run
 if ( ! wp_next_scheduled( 'uri_tides_updater_cron_hook' ) ) {
@@ -51,16 +51,15 @@ register_deactivation_hook( __FILE__, 'uri_tides_updater_deactivate' );
 
 /**
  * Controller of the tides data for the plugin.
+ * Runs based on cron settings
+ * @see uri_tides_updater_add_cron_interval()
+ * 
  * Checks for a cache
  * if we have a good cache, we use that.
  * otherwise, we query new tides data, and if it's good, we cache it.
  *
- * This is likely redundant due to the cron activity, but the code's here, and it 
- * won't run if there's a recent cache
- * @see uri_tides_updater_add_cron_interval()
- * 
  * Why not a transient?  Because I'm a control freak 
- * who would rather have stale data than no data
+ * who would rather have stale data than no data -JP
  */
 function uri_tides_updater_get_data() {
 
@@ -70,7 +69,7 @@ function uri_tides_updater_get_data() {
 	$tides_data = _uri_tides_updater_load_cache();
 
 	// 2. check if we have a cache for this resource
-	if ( $tides_data !== FALSE ) {
+	if ( $tides_data !== FALSE || $tides_data !== NULL ) {
 		// we've got cached data
 		// 3. check if the cache has sufficient recency
 		$expires_on = isset($tides_data['expires_on']) ? $tides_data['expires_on'] : $tides_data['date'];
@@ -105,9 +104,9 @@ function uri_tides_updater_get_data() {
 		
 	}
 	// reload the tides data from the database to capitalize on cache updates
-	$tides_data = _uri_tides_updater_load_cache();
+	//$tides_data = _uri_tides_updater_load_cache();
 
-	return $tides_data;
+	//return $tides_data;
 }
 
 /**
