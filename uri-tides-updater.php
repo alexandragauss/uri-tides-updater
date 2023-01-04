@@ -33,7 +33,7 @@ add_filter( 'cron_schedules', 'uri_tides_updater_add_cron_interval' );
 // https://developer.wordpress.org/plugins/cron/scheduling-wp-cron-events/
 add_action( 'uri_tides_updater_cron_hook', 'uri_tides_updater_get_data' );
 
-// finally, make sure that get tides is going run during the next 10 minute cron run
+// finally, make sure that get_data is going run during the next 10 minute cron run
 if ( ! wp_next_scheduled( 'uri_tides_updater_cron_hook' ) ) {
 	wp_schedule_event( time(), 'ten_minutes', 'uri_tides_updater_cron_hook' );
 }
@@ -97,9 +97,6 @@ function uri_tides_updater_get_data() {
 			$tides_data = _uri_tides_updater_load_cache();
 			uri_tides_updater_write_cache($tides_data, $expires_on);
 			
-			// notify the administrator of a problem
-			// _uri_tides_updater_notify_administrator( $tides_data );
-			
 		}
 		
 	}
@@ -107,29 +104,6 @@ function uri_tides_updater_get_data() {
 	//$tides_data = _uri_tides_updater_load_cache();
 
 	//return $tides_data;
-}
-
-/**
- * Send a notification to the administrator about the cache status
- * @param $tides_data arr the tides data 
- * @return bool
- */
-function _uri_tides_updater_notify_administrator( $tides_data ) {
-	// @todo: identify which site is sending the error
-	$to = get_option('admin_email');
-	if( empty ( $to ) ) {
-		$to = 'bjcfuller@uri.edu';
-	}
-	$timezone = get_option('timezone_string');
-	$date = (new DateTime('@' . $tides_data['date']))->setTimezone(new DateTimeZone( $timezone ));
-	$expiry = (new DateTime('@' . $tides_data['expires_on']))->setTimezone(new DateTimeZone( $timezone ));
-
-	$subject = 'URI Tides failed to update tide data';
-	$message = "The last time that tides data was refreshed successfully was on: " . $date->format( 'Y-m-d\TH:i:s' );
-	$message .= "\n\n";
-	$message .= "The site will try to refresh tides information on: " . $expiry->format( 'Y-m-d\TH:i:s' );
-		
-	return wp_mail($to, $subject, $message );
 }
 
 /**
