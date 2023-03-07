@@ -14,4 +14,4 @@ Contributors: Brandon Fuller, John Pennypacker, Alexandra Gauss
 Tags: widgets  
 Requires at least: 4.0  
 Tested up to: 6.0  
-Stable tag: 1.0  
+Stable tag: 1.1.0 

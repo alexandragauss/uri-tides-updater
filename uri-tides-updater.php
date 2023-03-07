@@ -3,7 +3,7 @@
 Plugin Name: URI Tides Updater
 Plugin URI: http://www.uri.edu
 Description: Retrieve live tide data from NOAA (requires URI Tides for display)
-Version: 1.0
+Version: 1.1.0
 Author: URI Web Communications
 Author URI: 
 @author: Brandon Fuller <bjcfuller@uri.edu>
