@@ -1,0 +1,17 @@
+{
+    "name": "uriweb/uri-tides-updater",
+    "type":  "wordpress-theme",
+    "description": "The plugin updates live water temp and tide prediction data from NOAA.",
+    "authors": [
+        {
+            "name": "URI Web Communications",
+            "email": "web-group@uri.edu",
+            "homepage": "https://github.com/uriweb"
+        }
+    ],
+    "homepage": "https://www.uri.edu",
+    "license": "GPL-3.0-only",
+    "require": {
+        "php": ">=7.4"
+    }
+}
