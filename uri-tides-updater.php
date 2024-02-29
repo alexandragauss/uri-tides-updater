@@ -3,7 +3,7 @@
 Plugin Name: URI Tides Updater
 Plugin URI: http://www.uri.edu
 Description: Retrieve live tide data from NOAA (requires URI Tides for display)
-Version: 1.1.0
+Version: 1.2.0
 Author: URI Web Communications
 Author URI: 
 @author: Brandon Fuller <bjcfuller@uri.edu>
@@ -124,7 +124,7 @@ function _uri_tides_updater_load_cache() {
  * @return mixed; arr on success, bool false on failure
  */
 function uri_tides_updater_query_buoy() {
-	$station = '8454049';
+	$station = '8452660'; #8454049
 	$tides_data = array();
 	$tides_data['temperature'] = _uri_tides_updater_query( _uri_tides_updater_build_url ( 'temperature', $station ) );
 	$tides_data['tide'] = _uri_tides_updater_query( _uri_tides_updater_build_url ( 'tide', $station ) );
@@ -139,10 +139,9 @@ function uri_tides_updater_query_buoy() {
 
 /**
  * Build the URL for the tides request
- * @param str $subject is the three letter subject code
  * @return str
  */
-function _uri_tides_updater_build_url( $q='temperature', $station='8454049' ) {
+function _uri_tides_updater_build_url( $q, $station ) {
 	$base = 'https://tidesandcurrents.noaa.gov/api/datagetter?';
 	$application = 'NOS.COOPS.TAC.' . ($q == 'temperature') ? 'PHYSOCEAN' : 'WL';
 	
